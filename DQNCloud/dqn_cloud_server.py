@@ -1,18 +1,18 @@
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, send_from_directory, make_response
 import torch
 import torch.optim as optim
 from dqn import DQN
 from dqn_replay import ReplayMemory
 from dqn_optimizer import Optimizer
-from config import CONVOLUTION_WIDTH, CONVOLUTION_HEIGHT, TARGET_UPDATE, STATE_DICT_PATH, REPLAY_MEMORY, ACTION_SPACES, MONGO_CLIENT, MONGO_DBNAME, HOST
+from config import CONVOLUTION_WIDTH, CONVOLUTION_HEIGHT, TARGET_UPDATE, STATE_DICT_PATH, REPLAY_MEMORY, ACTION_SPACES, MONGO_CLIENT, MONGO_DBNAME, HOST, DEVICE
 import numpy as np 
 import os
 import pymongo
 
 app = Flask(__name__)
 number_outputs = np.sum(ACTION_SPACES)
-policy_dqn = DQN(CONVOLUTION_WIDTH, CONVOLUTION_HEIGHT, number_outputs)
-target_dqn = DQN(CONVOLUTION_WIDTH, CONVOLUTION_HEIGHT, number_outputs)
+policy_dqn = DQN(CONVOLUTION_WIDTH, CONVOLUTION_HEIGHT, number_outputs).to(DEVICE)
+target_dqn = DQN(CONVOLUTION_WIDTH, CONVOLUTION_HEIGHT, number_outputs).to(DEVICE)
 memory = ReplayMemory(REPLAY_MEMORY)
 optimizer_algorithm = optim.RMSprop(policy_dqn.parameters())
 optimizer = Optimizer(policy_dqn, target_dqn, optimizer_algorithm, ACTION_SPACES)
@@ -58,9 +58,8 @@ def get_policy_version():
 def get_policy():
   version = request.args.get('version')
   if(os.path.isfile(os.path.join(STATE_DICT_PATH, 'version_' + version + '_' + optimizer.FILENAME))):
-    return send_from_directory(directory=STATE_DICT_PATH, filename=optimizer.FILENAME)
-  else:
-    return "No policy weights have been saved to the server"
+    return make_response(send_from_directory(directory=STATE_DICT_PATH, filename=optimizer.FILENAME, mimetype="application/octet-stream"))
+  return make_response("No policy weights have been saved to the server")
 
 def save_step(trial, episode, step, action, reward, last_state, next_state, inventory, version):
   record = {
