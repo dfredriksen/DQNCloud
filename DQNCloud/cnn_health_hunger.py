@@ -171,7 +171,7 @@ def predict_set(set_values, labels, model):
     print(str(accuracy_score(labels, predictions)*100) + '% accuracy on target dataset')
 
 def detect_status(np_value, model):
-    value = Variable(torch.tensor([np_value]).unsqueeze(1)).float()
+    value = Variable(torch.tensor([np_value])).float()
     return bool(is_status(value, model)[0])
 
 def is_status(value, model):

@@ -26,8 +26,8 @@ class Optimizer:
       self.starving_detector = CNNHealthHunger()
       healthy_weights = os.path.join(CNN_STATE_DICT_PATH, 'health_healthy_unhealthy_params.dat')
       pain_weights = os.path.join(CNN_STATE_DICT_PATH, 'health_pain_no_pain_params.dat')
-      full_weights = os.path.join(CNN_STATE_DICT_PATH, 'food_full_not_full_params.dat')
-      starving_weights = os.path.join(CNN_STATE_DICT_PATH, 'food_starving_fed_params.dat')
+      full_weights = os.path.join(CNN_STATE_DICT_PATH, 'hunger_full_not_full_params.dat')
+      starving_weights = os.path.join(CNN_STATE_DICT_PATH, 'hunger_starving_fed_params.dat')
       self.healthy_detector.load_state_dict(torch.load(healthy_weights))
       self.pain_detector.load_state_dict(torch.load(pain_weights))
       self.full_detector.load_state_dict(torch.load(full_weights))
@@ -46,7 +46,7 @@ class Optimizer:
       full = False
       starving = False
 
-      im = Image.fromarray(image_data)
+      im = Image.fromarray(np.array(image_data).astype(np.uint8))
       health_im = self.healthy_detector.crop_image(im, 'health')
       food_im = self.full_detector.crop_image(im, 'food')
       if detect_status(health_im, self.healthy_detector):
