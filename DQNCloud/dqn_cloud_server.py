@@ -40,7 +40,14 @@ def optimize():
   inventory = data["inventory"]
   version = data["version"]
   reward = optimizer.calculate_reward(image_data, reward, inventory)
-  memory.push(last_state, action, next_state, reward)
+  next_state_tensor = None
+  last_state_tensor = None
+  if next_state is not None:
+    next_state_tensor = torch.tensor(next_state)
+  if last_state is not None:
+    last_state_tensor = torch.tensor(last_state)
+
+  memory.push(last_state_tensor, torch.tensor([action]), next_state_tensor, reward)
   optimizer.optimize_model(memory)
 
   if step % TARGET_UPDATE == 0:
