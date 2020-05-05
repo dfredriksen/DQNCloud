@@ -39,7 +39,7 @@ def optimize():
   next_state = data["next_state"]
   inventory = data["inventory"]
   version = data["version"]
-  reward = optimizer.calculate_reward(image_data, reward, inventory)
+  reward, healthy, pain, full, starving, brightness = optimizer.calculate_reward(image_data, reward, inventory)
   next_state_tensor = None
   last_state_tensor = None
   if next_state is not None:
@@ -54,7 +54,7 @@ def optimize():
     optimizer.update_target()
 
   optimizer.save_policy_weights()
-  save_step(trial, episode, step, action, reward, last_state, next_state, inventory, version)
+  save_step(trial, episode, step, action, reward, last_state, next_state, inventory, healthy, pain, full, starving, brightness, version)
   return "step processed"
 
 @app.route('/version', methods=['GET'])
@@ -68,7 +68,7 @@ def get_policy():
     return make_response(send_from_directory(directory=STATE_DICT_PATH, filename=optimizer.FILENAME, mimetype="application/octet-stream"))
   return make_response("No policy weights have been saved to the server")
 
-def save_step(trial, episode, step, action, reward, last_state, next_state, inventory, version):
+def save_step(trial, episode, step, action, reward, last_state, next_state, inventory, healthy, pain, full, starving, brightness, version):
   record = {
     "trial": trial,
     "episode": episode,
@@ -78,6 +78,11 @@ def save_step(trial, episode, step, action, reward, last_state, next_state, inve
     "last_state": last_state,
     "next_state": next_state,
     "inventory": inventory,
+    "healthy": healthy,
+    "pain": pain,
+    "full": full,
+    "starving": starving,
+    "brightness": brightness,
     "version": version
   }
 

@@ -2,7 +2,9 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 import os
-from config import DEVICE, BATCH_SIZE, GAMMA, STATE_DICT_PATH
+from cnn_health_hunger import CNNHealthHunger, detect_status
+from config import DEVICE, BATCH_SIZE, GAMMA, STATE_DICT_PATH, CNN_STATE_DICT_PATH
+from PIL import Image
 
 class Optimizer:
 
@@ -14,10 +16,56 @@ class Optimizer:
       self.optimizer = optimizer
       self.action_spaces = action_spaces
       self.policy_filename = None
+      self.initialize_status_sensors()
 
+
+  def initialize_status_sensors(self):
+      self.healthy_detector = CNNHealthHunger()
+      self.pain_detector = CNNHealthHunger()
+      self.full_detector = CNNHealthHunger()
+      self.starving_detector = CNNHealthHunger()
+      healthy_weights = os.path.join(CNN_STATE_DICT_PATH, 'health_healthy_unhealthy_params.dat')
+      pain_weights = os.path.join(CNN_STATE_DICT_PATH, 'health_pain_no_pain_params.dat')
+      full_weights = os.path.join(CNN_STATE_DICT_PATH, 'food_full_not_full_params.dat')
+      starving_weights = os.path.join(CNN_STATE_DICT_PATH, 'food_starving_fed_params.dat')
+      self.healthy_detector.load_state_dict(torch.load(healthy_weights))
+      self.pain_detector.load_state_dict(torch.load(pain_weights))
+      self.full_detector.load_state_dict(torch.load(full_weights))
+      self.starving_detector.load_state_dict(torch.load(starving_weights))
+      
   def calculate_reward(self, image_data, reward, inventory):
       new_reward = reward
-      return torch.tensor([[new_reward for i in range(len(self.action_spaces))]], device=DEVICE)
+      average_brightness = np.mean(image_data)
+      if average_brightness > 100:
+        new_reward = new_reward + 0.5
+      if average_brightness < 70:
+        new_reward = new_reward - 1
+      
+      healthy = False
+      pain = False
+      full = False
+      starving = False
+
+      im = Image.fromarray(image_data)
+      health_im = self.healthy_detector.crop_image(im, 'health')
+      food_im = self.full_detector.crop_image(im, 'food')
+      if detect_status(health_im, self.healthy_detector):
+        healthy = True
+        new_reward = new_reward + 1
+      
+      if detect_status(health_im, self.pain_detector):
+        pain = True
+        new_reward = new_reward - 10
+      
+      if detect_status(food_im, self.full_detector):
+        full = True
+        new_reward = new_reward + 1
+
+      if detect_status(food_im, self.starving_detector):
+        starving = True
+        new_reward = new_reward - 5
+
+      return [torch.tensor([[new_reward for i in range(len(self.action_spaces))]], device=DEVICE), healthy, pain, full, starving, average_brightness]
 
 
   def optimize_model(self, memory):

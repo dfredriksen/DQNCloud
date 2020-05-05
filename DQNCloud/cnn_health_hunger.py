@@ -92,7 +92,7 @@ class CNNHealthHunger(nn.Module):
     self.train_y = np.array(train_data["label"]).astype(float)
     self.test_x = test_data["image"]
     self.test_y = np.array(test_data["label"]).astype(float)  
-    self.train_x, self.val_x, self.train_y, self.val_y = train_test_split(self.train_x, self.train_y, test_size = 0.1)
+    self.train_x, self.val_x, self.train_y, self.val_y = train_test_split(self.train_x, self.train_y, test_size = 0.3)
   
   def process_image_test(self, img_path, crop_type = "health"):
     im = Image.open(img_path)
@@ -167,14 +167,14 @@ def train_model(epochs, model, save_path):
 
 
 def predict_set(set_values, labels, model):
-    predictions = is_done(set_values, model)
+    predictions = is_status(set_values, model)
     print(str(accuracy_score(labels, predictions)*100) + '% accuracy on target dataset')
 
-def detect_is_done(np_value, model):
+def detect_status(np_value, model):
     value = Variable(torch.tensor([np_value]).unsqueeze(1)).float()
-    return bool(is_done(value, model)[0])
+    return bool(is_status(value, model)[0])
 
-def is_done(value, model):
+def is_status(value, model):
     with torch.no_grad():
         output = model(value)
 
@@ -182,7 +182,7 @@ def is_done(value, model):
     prob = list(softmax.numpy())
     return np.argmax(prob, axis=1)
 
-def train_detector(dataset,class1_folder,class2_folder, model = None, epochs=500):
+def train_detector(dataset,class1_folder,class2_folder, model = None, epochs=1000):
   if model == None:
     model = CNNHealthHunger()
   save_path = os.path.join(CNN_STATE_DICT_PATH, dataset + '_' + class1_folder + '_' + class2_folder + '_' + 'params.dat')
@@ -194,7 +194,7 @@ def train_detector(dataset,class1_folder,class2_folder, model = None, epochs=500
   model.load_training_data(dataset, training_class1_dataset, training_class2_dataset, test_class1_dataset, test_class2_dataset)
   train_model(epochs, model, save_path)
 
-train_detector('health', 'healthy', 'unhealthy')
-train_detector('health', 'pain', 'no_pain')
-train_detector('hunger', 'full', 'not_full')
-train_detector('hunger', 'starving', 'fed')
+##train_detector('health', 'healthy', 'unhealthy')
+##train_detector('health', 'pain', 'no_pain')
+##train_detector('hunger', 'full', 'not_full')
+##train_detector('hunger', 'starving', 'fed')
