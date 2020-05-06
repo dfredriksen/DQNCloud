@@ -37,7 +37,7 @@ class Optimizer:
       new_reward = reward
       average_brightness = np.mean(image_data)
       if average_brightness > 100:
-        new_reward = new_reward + 0.5
+        new_reward = new_reward + 1
       if average_brightness < 70:
         new_reward = new_reward - 1
       
