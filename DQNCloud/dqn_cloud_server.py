@@ -9,6 +9,7 @@ import numpy as np
 import os
 import pymongo
 
+
 app = Flask(__name__)
 number_outputs = np.sum(ACTION_SPACES)
 policy_dqn = DQN(CONVOLUTION_WIDTH, CONVOLUTION_HEIGHT, number_outputs).to(DEVICE)
@@ -19,12 +20,16 @@ optimizer = Optimizer(policy_dqn, target_dqn, optimizer_algorithm, ACTION_SPACES
 mongo_client = pymongo.MongoClient("mongodb://" + MONGO_CLIENT)
 
 if(os.path.isfile(os.path.join(STATE_DICT_PATH, optimizer.FILENAME))):
+  version = get_version()
   policy_dqn.load_state_dict(torch.load(os.path.join(STATE_DICT_PATH, optimizer.FILENAME)))
   policy_dqn.eval()
+  policy_dqn.version = version
 
 target_dqn.load_state_dict(policy_dqn.state_dict())
 target_dqn.eval()
 print("Initializing...")
+
+
 
 @app.route('/optimize', methods=['POST'])
 def optimize():
@@ -75,8 +80,6 @@ def save_step(trial, episode, step, action, reward, last_state, next_state, inve
     "step": step,
     "action": action,
     "reward": reward.numpy()[0].tolist(),
-    "last_state": last_state,
-    "next_state": next_state,
     "inventory": inventory,
     "healthy": healthy,
     "pain": pain,
@@ -91,6 +94,24 @@ def save_step(trial, episode, step, action, reward, last_state, next_state, inve
   x = mongo_collection.insert_one(record)
   print(x.inserted_id)
 
+def get_version():
+  files = os.listdir(STATE_DICT_PATH)
+
+  versions = []
+  for filename in files: 
+    if filename != 'policyweights.dat':
+      file_split = filename.split('_')
+      version = int(file_split[1])
+      versions.append(version)
+
+  versions.sort(reverse=True)
+  if len(versions) > 0:
+    return versions[0]
+  else:
+    return 1
+
 if __name__ == '__main__':
   app.config["CACHE_TYPE"] = "null"
   app.run(host=HOST)
+
+
